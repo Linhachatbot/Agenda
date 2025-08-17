@@ -17,13 +17,20 @@
             color: #1f2937;
         }
         .day {
-            @apply p-2 rounded-lg text-center cursor-pointer transition-colors duration-200;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition-property: background-color;
+            transition-duration: 200ms;
         }
-        .day.current-month {
-            @apply hover:bg-gray-200;
+        .day.current-month:hover {
+            background-color: #e5e7eb; /* Tailwind gray-200 */
         }
         .day.selected-day {
-            @apply bg-blue-500 text-white font-bold;
+            background-color: #3b82f6; /* Tailwind blue-500 */
+            color: #ffffff;
+            font-weight: 700;
         }
         .day.has-appointments {
             background-color: #a5b4fc; /* Tailwind indigo-300 */
@@ -51,18 +58,6 @@
             background-color: #f9fafb; /* Tailwind gray-50 */
             font-weight: 600;
             color: #1f2937; /* Tailwind gray-900 */
-        }
-        input, select {
-            width: 100%;
-            border: none;
-            background: transparent;
-            padding: 0;
-            margin: 0;
-            box-shadow: none;
-            outline: none;
-        }
-        .input-cell {
-            cursor: pointer;
         }
         .modal-overlay {
             position: fixed;
@@ -96,22 +91,57 @@
         .modal-overlay.open .modal-content {
             transform: translateY(0);
         }
+        /* Custom modal for confirm dialog */
+        .confirm-modal-content {
+             background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        /* Autocomplete styles */
+        .autocomplete-suggestions {
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            max-height: 150px;
+            overflow-y: auto;
+            position: absolute;
+            background-color: white;
+            width: 100%;
+            z-index: 1001;
+        }
+        .autocomplete-suggestion {
+            padding: 0.5rem;
+            cursor: pointer;
+        }
+        .autocomplete-suggestion:hover {
+            background-color: #f3f4f6;
+        }
+        /* Style for concluded appointments */
+        tr.concluded td:not(:last-child):not(:nth-last-child(2)) {
+            text-decoration: line-through;
+            color: #9ca3af; /* Tailwind gray-400 */
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
     <!-- Container principal da aplicação -->
-    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-6xl w-full">
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-7xl w-full">
         <h1 class="text-3xl font-bold text-center mb-6">Agenda de Compromissos</h1>
-        <div class="flex justify-between items-center mb-4">
-            <button id="open-config-modal" class="py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-gray-500 hover:bg-gray-600 transition-colors duration-200">
-                Configurações
-            </button>
+        <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
+            <div class="flex space-x-2">
+                 <button id="open-config-modal" class="py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-gray-500 hover:bg-gray-600 transition-colors duration-200">
+                    Configurações
+                </button>
+                <button id="open-clients-modal" class="py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-teal-500 hover:bg-teal-600 transition-colors duration-200">
+                    Histórico de Clientes
+                </button>
+            </div>
             <!-- Botões de ação do agendamento -->
             <div id="action-buttons" class="hidden space-x-2">
-                <button id="add-appointment-btn" class="py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
-                    Adicionar Agendamento
-                </button>
                 <button id="package-appointment-btn" class="py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors duration-200">
                     Agendar por Pacote
                 </button>
@@ -136,13 +166,7 @@
                     </button>
                 </div>
                 <div id="weekdays" class="grid grid-cols-7 gap-2 text-center text-sm font-medium text-gray-500">
-                    <span>Dom</span>
-                    <span>Seg</span>
-                    <span>Ter</span>
-                    <span>Qua</span>
-                    <span>Qui</span>
-                    <span>Sex</span>
-                    <span>Sáb</span>
+                    <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
                 </div>
                 <div id="days-grid" class="grid grid-cols-7 gap-2">
                     <!-- Dias do calendário serão renderizados aqui pelo JavaScript -->
@@ -153,198 +177,80 @@
         <!-- Seção de compromissos em tabela (tela secundária, inicialmente oculta) -->
         <div id="appointment-view" class="hidden fade-in">
             <button id="back-to-calendar" class="mb-4 flex items-center text-blue-600 hover:text-blue-800 transition-colors duration-200">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                 Voltar ao Calendário
             </button>
             <h2 id="selected-date-display" class="text-2xl font-semibold mb-6 text-center"></h2>
-
             <div class="overflow-x-auto">
                 <table id="schedule-table" class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
                     <thead>
                         <tr>
-                            <th class="w-1/12">Horário</th>
-                            <th class="w-2/12">Nome do cliente</th>
-                            <th class="w-2/12">Pet</th>
-                            <th class="w-2/12">Serviço</th>
-                            <th class="w-1/12">Porte</th>
-                            <th class="w-1/12">Valor</th>
-                            <th class="w-2/12">Pagamento</th>
-                            <th class="w-2/12">Contato</th>
-                            <th class="w-1/12">Ações</th>
+                            <th>Horário</th><th>Cliente</th><th>Pet</th><th>Serviço</th><th>Porte</th><th>Valor</th><th>Pagamento</th><th>Contato</th><th>Status</th><th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody id="schedule-body">
-                        <!-- Linhas da tabela serão renderizadas aqui pelo JavaScript -->
-                    </tbody>
+                    <tbody id="schedule-body"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <!-- MÓDULO: Modais -->
-    <!-- Modal de Configurações (Inicialmente oculto) -->
+    <!-- Modal de Configurações -->
     <div id="config-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h2 class="text-2xl font-bold mb-4 text-center">Configurações da Agenda</h2>
-            <form id="config-form" class="space-y-6">
-                <!-- Horários de Semana -->
-                <div>
-                    <h3 class="text-lg font-semibold mb-2">Horários de Segunda a Sexta</h3>
-                    <div class="flex space-x-4">
-                        <div class="flex-1">
-                            <label for="weekday-start-time" class="block text-sm font-medium text-gray-700">Hora de Início:</label>
-                            <input type="time" id="weekday-start-time" name="weekday-start-time" value="08:00" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                        </div>
-                        <div class="flex-1">
-                            <label for="weekday-end-time" class="block text-sm font-medium text-gray-700">Hora de Fim:</label>
-                            <input type="time" id="weekday-end-time" name="weekday-end-time" value="21:00" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Horários de Fim de Semana -->
-                <div>
-                    <h3 class="text-lg font-semibold mb-2">Horários de Fim de Semana</h3>
-                    <div class="space-y-4">
-                        <!-- Sábado -->
-                        <div class="flex items-center space-x-4">
-                            <div class="flex items-center">
-                                <input type="checkbox" id="working-saturday-toggle" name="working-saturday-toggle" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
-                                <label for="working-saturday-toggle" class="ml-2 text-sm text-gray-700">Sábado</label>
-                            </div>
-                            <div class="flex-1 flex space-x-4">
-                                <div>
-                                    <label for="saturday-start-time" class="block text-xs font-medium text-gray-500">Início:</label>
-                                    <input type="time" id="saturday-start-time" name="saturday-start-time" value="08:00" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                                </div>
-                                <div>
-                                    <label for="saturday-end-time" class="block text-xs font-medium text-gray-500">Fim:</label>
-                                    <input type="time" id="saturday-end-time" name="saturday-end-time" value="18:00" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Domingo -->
-                        <div class="flex items-center space-x-4">
-                            <div class="flex items-center">
-                                <input type="checkbox" id="working-sunday-toggle" name="working-sunday-toggle" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
-                                <label for="working-sunday-toggle" class="ml-2 text-sm text-gray-700">Domingo</label>
-                            </div>
-                            <div class="flex-1 flex space-x-4">
-                                <div>
-                                    <label for="sunday-start-time" class="block text-xs font-medium text-gray-500">Início:</label>
-                                    <input type="time" id="sunday-start-time" name="sunday-start-time" value="08:00" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                                </div>
-                                <div>
-                                    <label for="sunday-end-time" class="block text-xs font-medium text-gray-500">Fim:</label>
-                                    <input type="time" id="sunday-end-time" name="sunday-end-time" value="18:00" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Gerenciamento de Serviços -->
-                <div>
-                    <h3 class="text-lg font-semibold mb-2">Gerenciar Serviços</h3>
-                    <ul id="service-list" class="space-y-4 max-h-40 overflow-y-auto pr-2 mb-4">
-                        <!-- Lista de serviços com preços por porte -->
-                    </ul>
-                    <div class="space-y-2">
-                        <label for="new-service-name" class="block text-sm font-medium text-gray-700">Adicionar Novo Serviço</label>
-                        <input type="text" id="new-service-name" placeholder="Novo nome do serviço" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                        <div class="flex space-x-2">
-                            <input type="text" id="new-service-price-p" placeholder="Preço Pequeno (R$)" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                            <input type="text" id="new-service-price-m" placeholder="Preço Médio (R$)" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                            <input type="text" id="new-service-price-g" placeholder="Preço Grande (R$)" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                        </div>
-                        <button type="button" id="add-service-btn" class="w-full py-2 px-4 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors duration-200">
-                            Adicionar
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="flex justify-end space-x-4 mt-6">
-                    <button type="button" id="close-config-modal" class="py-2 px-4 rounded-md text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-100 transition-colors duration-200">
-                        Fechar
-                    </button>
-                    <button type="submit" class="py-2 px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
-                        Salvar Configurações
-                    </button>
-                </div>
-            </form>
-        </div>
+        <div class="modal-content"><h2 class="text-2xl font-bold mb-4 text-center">Configurações da Agenda</h2><form id="config-form" class="space-y-6"><div><h3 class="text-lg font-semibold mb-2">Horários de Segunda a Sexta</h3><div class="flex space-x-4"><div class="flex-1"><label for="weekday-start-time" class="block text-sm font-medium text-gray-700">Hora de Início:</label><input type="time" id="weekday-start-time" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div class="flex-1"><label for="weekday-end-time" class="block text-sm font-medium text-gray-700">Hora de Fim:</label><input type="time" id="weekday-end-time" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div></div></div><div><h3 class="text-lg font-semibold mb-2">Horários de Fim de Semana</h3><div class="space-y-4"><div class="flex items-center space-x-4"><div class="flex items-center"><input type="checkbox" id="working-saturday-toggle" class="h-4 w-4 text-blue-600 border-gray-300 rounded"><label for="working-saturday-toggle" class="ml-2 text-sm text-gray-700">Sábado</label></div><div class="flex-1 flex space-x-4"><div><label for="saturday-start-time" class="block text-xs font-medium text-gray-500">Início:</label><input type="time" id="saturday-start-time" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div><label for="saturday-end-time" class="block text-xs font-medium text-gray-500">Fim:</label><input type="time" id="saturday-end-time" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div></div></div><div class="flex items-center space-x-4"><div class="flex items-center"><input type="checkbox" id="working-sunday-toggle" class="h-4 w-4 text-blue-600 border-gray-300 rounded"><label for="working-sunday-toggle" class="ml-2 text-sm text-gray-700">Domingo</label></div><div class="flex-1 flex space-x-4"><div><label for="sunday-start-time" class="block text-xs font-medium text-gray-500">Início:</label><input type="time" id="sunday-start-time" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div><label for="sunday-end-time" class="block text-xs font-medium text-gray-500">Fim:</label><input type="time" id="sunday-end-time" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div></div></div></div></div><div><h3 class="text-lg font-semibold mb-2">Taxa de Cartão</h3><div class="flex items-center space-x-4"><label for="card-fee" class="block text-sm font-medium text-gray-700">Taxa do Cartão (%):</label><input type="text" id="card-fee" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div></div><div><h3 class="text-lg font-semibold mb-2">Gerenciar Serviços</h3><ul id="service-list" class="space-y-4 max-h-40 overflow-y-auto pr-2 mb-4"></ul><div class="space-y-2"><label class="block text-sm font-medium text-gray-700">Adicionar/Editar Serviço</label><input type="text" id="new-service-name" placeholder="Nome do serviço" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"><div class="flex space-x-2"><input type="text" id="new-service-price-p" placeholder="Preço P (R$)" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm"><input type="text" id="new-service-price-m" placeholder="Preço M (R$)" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm"><input type="text" id="new-service-price-g" placeholder="Preço G (R$)" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><button type="button" id="add-service-btn" class="w-full py-2 px-4 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700">Adicionar/Salvar Serviço</button></div></div><div class="flex justify-end space-x-4 mt-6"><button type="button" id="close-config-modal" class="py-2 px-4 rounded-md text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-100">Fechar</button><button type="submit" class="py-2 px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">Salvar Configurações</button></div></form></div>
     </div>
     
-    <!-- Modal de Compromisso (Inicialmente oculto) -->
+    <!-- Modal de Compromisso -->
     <div id="appointment-modal" class="modal-overlay">
         <div class="modal-content">
             <h2 id="modal-title" class="text-2xl font-bold mb-4">Agendar Horário</h2>
             <form id="appointment-form" class="space-y-4">
                 <div>
                     <label for="modal-client-name" class="block text-sm font-medium text-gray-700">Nome do Cliente</label>
-                    <input type="text" id="modal-client-name" name="client" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                    <div class="relative">
+                        <input type="text" id="modal-client-name" name="client" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" autocomplete="off">
+                        <div id="client-autocomplete" class="autocomplete-suggestions hidden"></div>
+                    </div>
                 </div>
                 <div>
                     <label for="modal-pet-name" class="block text-sm font-medium text-gray-700">Nome do Pet</label>
-                    <input type="text" id="modal-pet-name" name="pet" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                    <div class="relative">
+                        <input type="text" id="modal-pet-name" name="pet" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" autocomplete="off">
+                        <div id="pet-autocomplete" class="autocomplete-suggestions hidden"></div>
+                    </div>
                 </div>
-                <div>
-                    <label for="modal-service" class="block text-sm font-medium text-gray-700">Serviço</label>
-                    <select id="modal-service" name="service" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                        <option value="">-- Selecione --</option>
-                        <!-- Opções serão preenchidas via JS -->
-                    </select>
+                <div><label for="modal-service" class="block text-sm font-medium text-gray-700">Serviço</label><select id="modal-service" name="service" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"><option value="">-- Selecione --</option></select></div>
+                <div><label for="modal-pet-size" class="block text-sm font-medium text-gray-700">Porte do Pet</label><select id="modal-pet-size" name="pet-size" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"><option value="">-- Selecione --</option><option value="Pequeno">Pequeno</option><option value="Médio">Médio</option><option value="Grande">Grande</option></select></div>
+                <div><label for="modal-value" class="block text-sm font-medium text-gray-700">Valor</label><input type="text" id="modal-value" name="value" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div>
+                <div><label for="modal-payment-method" class="block text-sm font-medium text-gray-700">Forma de Pagamento</label><select id="modal-payment-method" name="payment-method" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"><option value="">Selecione a forma</option><option value="Dinheiro">Dinheiro</option><option value="Pix">Pix</option><option value="Crédito">Crédito</option><option value="Débito">Débito</option></select></div>
+                <div><label for="modal-contact" class="block text-sm font-medium text-gray-700">Contato</label><input type="text" id="modal-contact" name="contact" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div>
+                <div><label for="modal-history" class="block text-sm font-medium text-gray-700">Observações</label><textarea id="modal-history" name="history" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></textarea></div>
+                <div class="flex justify-between">
+                    <div class="flex items-center"><input type="checkbox" id="modal-home-delivery" class="h-4 w-4 text-blue-600 border-gray-300 rounded"><label for="modal-home-delivery" class="ml-2 text-sm font-medium text-gray-700">Com busca em casa</label></div>
+                    <div class="flex items-center"><input type="checkbox" id="modal-concluded" name="isConcluded" class="h-4 w-4 text-green-600 border-gray-300 rounded"><label for="modal-concluded" class="ml-2 text-sm font-medium text-gray-700">Serviço Concluído</label></div>
                 </div>
-                <div>
-                    <label for="modal-pet-size" class="block text-sm font-medium text-gray-700">Porte do Pet</label>
-                    <select id="modal-pet-size" name="pet-size" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                        <option value="">-- Selecione --</option>
-                        <option value="Pequeno">Pequeno</option>
-                        <option value="Médio">Médio</option>
-                        <option value="Grande">Grande</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="modal-value" class="block text-sm font-medium text-gray-700">Valor</label>
-                    <input type="text" id="modal-value" name="value" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                </div>
-                <div>
-                    <label for="modal-payment-method" class="block text-sm font-medium text-gray-700">Forma de Pagamento</label>
-                    <select id="modal-payment-method" name="payment-method" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                        <option value="">Selecione a forma</option>
-                        <option value="Dinheiro">Dinheiro</option>
-                        <option value="Cartão">Cartão</option>
-                        <option value="Pix">Pix</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="modal-contact" class="block text-sm font-medium text-gray-700">Contato</label>
-                    <input type="text" id="modal-contact" name="contact" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-                </div>
-                <div class="flex items-center">
-                    <input type="checkbox" id="modal-home-delivery" class="h-4 w-4 text-blue-600 border-gray-300 rounded">
-                    <label for="modal-home-delivery" class="ml-2 text-sm text-gray-700">Com busca em casa</label>
-                </div>
-
-                <div class="flex justify-end space-x-2 mt-4">
-                    <button type="button" id="delete-appointment" class="py-2 px-4 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors duration-200 hidden">
-                        Excluir
-                    </button>
-                    <button type="button" id="close-appointment-modal" class="py-2 px-4 rounded-md text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-100 transition-colors duration-200">
-                        Cancelar
-                    </button>
-                    <button type="submit" id="save-appointment" class="py-2 px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
-                        Salvar
-                    </button>
-                </div>
+                <div class="flex justify-end space-x-2 mt-4"><button type="button" id="delete-appointment" class="py-2 px-4 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 hidden">Excluir</button><button type="button" id="close-appointment-modal" class="py-2 px-4 rounded-md text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-100">Cancelar</button><button type="submit" id="save-appointment" class="py-2 px-4 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">Salvar</button></div>
             </form>
         </div>
     </div>
+
+    <!-- Modal de Histórico de Clientes -->
+    <div id="clients-modal" class="modal-overlay">
+        <div class="modal-content"><h2 class="text-2xl font-bold mb-4 text-center">Histórico de Clientes</h2><input type="text" id="client-search" placeholder="Buscar cliente..." class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm mb-4"><div id="client-list" class="space-y-2 max-h-96 overflow-y-auto"></div><div class="flex justify-end mt-6"><button type="button" id="close-clients-modal" class="py-2 px-4 rounded-md text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-100">Fechar</button></div></div>
+    </div>
+
+    <!-- Modal de Agendamento de Pacote -->
+    <div id="package-modal" class="modal-overlay">
+        <div class="modal-content"><h2 class="text-2xl font-bold mb-4 text-center">Agendar Pacote de Serviços</h2><form id="package-form" class="space-y-4"><div><label for="package-client" class="block text-sm font-medium text-gray-700">Cliente</label><select id="package-client" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></select></div><div><label for="package-pet" class="block text-sm font-medium text-gray-700">Pet</label><select id="package-pet" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></select></div><div><label for="package-service" class="block text-sm font-medium text-gray-700">Serviço</label><select id="package-service" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></select></div><div><label for="package-frequency" class="block text-sm font-medium text-gray-700">Frequência</label><select id="package-frequency" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"><option value="7">Semanal</option><option value="14">Quinzenal</option><option value="30">Mensal</option></select></div><div><label for="package-sessions" class="block text-sm font-medium text-gray-700">Número de Sessões</label><input type="number" id="package-sessions" value="4" min="1" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div><label for="package-start-date" class="block text-sm font-medium text-gray-700">Data de Início</label><input type="date" id="package-start-date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"></div><div class="flex justify-end space-x-2 mt-4"><button type="button" id="close-package-modal" class="py-2 px-4 rounded-md text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-100">Cancelar</button><button type="submit" class="py-2 px-4 rounded-md text-sm font-medium text-white bg-purple-600 hover:bg-purple-700">Agendar Pacote</button></div></form></div>
+    </div>
     
-    <!-- Mensagem flutuante para avisos (sucesso/erro) -->
+    <!-- Mensagem flutuante para avisos -->
     <div id="message-box" class="fixed top-5 right-5 p-4 rounded-md shadow-lg text-white font-medium transform transition-transform duration-300 translate-y-full opacity-0"></div>
+
+    <!-- Modal de confirmação customizado -->
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="confirm-modal-content"><p id="confirm-message" class="mb-6 text-lg"></p><div class="flex justify-center space-x-4"><button id="confirm-yes" class="py-2 px-6 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700">Sim</button><button id="confirm-no" class="py-2 px-6 rounded-md text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-100">Não</button></div></div>
+    </div>
 
     <!-- MÓDULO: Lógica do Sistema -->
     <script>
@@ -356,10 +262,12 @@
         
         // LÓGICA: Carregamento e Salvar Dados
         let appointments = JSON.parse(localStorage.getItem('appointments')) || {};
+        let clients = JSON.parse(localStorage.getItem('clients')) || {};
         let config = JSON.parse(localStorage.getItem('config')) || {
             weekday: { start: "08:00", end: "21:00" },
             saturday: { enabled: true, start: "08:00", end: "18:00" },
-            sunday: { enabled: true, start: "08:00", end: "18:00" },
+            sunday: { enabled: false, start: "08:00", end: "18:00" },
+            cardFee: "3",
             services: [
                 { name: "Banho", prices: { P: "40,00", M: "50,00", G: "60,00" } },
                 { name: "Tosa", prices: { P: "45,00", M: "55,00", G: "65,00" } },
@@ -367,31 +275,27 @@
                 { name: "Corte de unha", prices: { P: "15,00", M: "20,00", G: "25,00" } }
             ]
         };
-        const petSizes = ["Pequeno", "Médio", "Grande"];
-        const paymentMethods = ["Dinheiro", "Cartão", "Pix"];
+
+        // LÓGICA: Funções de Persistência
+        function saveAppointments() { localStorage.setItem('appointments', JSON.stringify(appointments)); }
+        function saveConfig() { localStorage.setItem('config', JSON.stringify(config)); }
+        function saveClients() { localStorage.setItem('clients', JSON.stringify(clients)); }
 
         // LÓGICA: Funções de Utilitário
         function generateTimeSlots(dayOfWeek) {
             let startHour, endHour;
-            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-            if (dayOfWeek === 6 && config.saturday.enabled) { // Sábado
-                startHour = parseInt(config.saturday.start.split(':')[0]);
-                endHour = parseInt(config.saturday.end.split(':')[0]);
-            } else if (dayOfWeek === 0 && config.sunday.enabled) { // Domingo
-                startHour = parseInt(config.sunday.start.split(':')[0]);
-                endHour = parseInt(config.sunday.end.split(':')[0]);
-            } else if (!isWeekend) { // Dias de semana
-                startHour = parseInt(config.weekday.start.split(':')[0]);
-                endHour = parseInt(config.weekday.end.split(':')[0]);
+            if (dayOfWeek === 6 && config.saturday.enabled) {
+                [startHour, endHour] = [parseInt(config.saturday.start.split(':')[0]), parseInt(config.saturday.end.split(':')[0])];
+            } else if (dayOfWeek === 0 && config.sunday.enabled) {
+                [startHour, endHour] = [parseInt(config.sunday.start.split(':')[0]), parseInt(config.sunday.end.split(':')[0])];
+            } else if (dayOfWeek > 0 && dayOfWeek < 6) {
+                [startHour, endHour] = [parseInt(config.weekday.start.split(':')[0]), parseInt(config.weekday.end.split(':')[0])];
             } else {
-                return []; // Retorna array vazio se o dia estiver desabilitado
+                return [];
             }
-
             const slots = [];
-            for (let h = startHour; h <= endHour; h++) {
-                const hour = String(h).padStart(2, '0');
-                slots.push(`${hour}:00`);
+            for (let h = startHour; h < endHour; h++) {
+                slots.push(`${String(h).padStart(2, '0')}:00`);
             }
             return slots;
         }
@@ -399,21 +303,45 @@
         function showMessage(message, type = 'success') {
             const messageBox = document.getElementById('message-box');
             messageBox.textContent = message;
-            messageBox.style.backgroundColor = type === 'success' ? '#10b981' : '#ef4444';
-            messageBox.classList.remove('translate-y-full', 'opacity-0');
-            messageBox.classList.add('translate-y-0', 'opacity-100');
+            messageBox.className = `fixed top-5 right-5 p-4 rounded-md shadow-lg text-white font-medium transform transition-transform duration-300 translate-y-0 opacity-100 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
             setTimeout(() => {
-                messageBox.classList.remove('translate-y-0', 'opacity-100');
-                messageBox.classList.add('translate-y-full', 'opacity-0');
+                messageBox.className = messageBox.className.replace('translate-y-0 opacity-100', 'translate-y-full opacity-0');
             }, 3000);
         }
 
-        function saveAppointments() {
-            localStorage.setItem('appointments', JSON.stringify(appointments));
+        function customConfirm(message) {
+            return new Promise(resolve => {
+                const modal = document.getElementById('confirm-modal');
+                document.getElementById('confirm-message').textContent = message;
+                modal.classList.add('open');
+                const yesBtn = document.getElementById('confirm-yes');
+                const noBtn = document.getElementById('confirm-no');
+                
+                const listener = (e) => {
+                    modal.classList.remove('open');
+                    yesBtn.removeEventListener('click', listener);
+                    noBtn.removeEventListener('click', listener);
+                    resolve(e.target === yesBtn);
+                };
+                yesBtn.addEventListener('click', listener);
+                noBtn.addEventListener('click', listener);
+            });
         }
-
-        function saveConfig() {
-            localStorage.setItem('config', JSON.stringify(config));
+        
+        function updateClientDatabase(clientName, contact, petName) {
+            if (!clientName) return;
+            const normalizedName = clientName.trim().toLowerCase();
+            if (!clients[normalizedName]) {
+                clients[normalizedName] = { name: clientName.trim(), contact: '', pets: new Set() };
+            }
+            if (contact) clients[normalizedName].contact = contact;
+            if (petName) clients[normalizedName].pets.add(petName.trim());
+            
+            const clientData = clients[normalizedName];
+            const serializableClient = { ...clientData, pets: Array.from(clientData.pets) };
+            clients[normalizedName] = serializableClient;
+            saveClients();
+            clients[normalizedName].pets = new Set(serializableClient.pets);
         }
 
         // LÓGICA: Renderização das Telas
@@ -425,60 +353,35 @@
             const firstDayOfMonth = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             
-            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-            monthAndYearEl.textContent = `${monthNames[month]} ${year}`;
-            
+            monthAndYearEl.textContent = `${new Date(year, month).toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}`;
             daysGridEl.innerHTML = '';
 
-            for (let i = 0; i < firstDayOfMonth; i++) {
-                const emptyDay = document.createElement('div');
-                emptyDay.className = 'day text-gray-400';
-                daysGridEl.appendChild(emptyDay);
-            }
+            for (let i = 0; i < firstDayOfMonth; i++) daysGridEl.insertAdjacentHTML('beforeend', `<div class="day text-gray-400"></div>`);
 
             for (let day = 1; day <= daysInMonth; day++) {
-                const dayEl = document.createElement('div');
                 const dayDate = new Date(year, month, day);
                 const dayFormatted = dayDate.toISOString().split('T')[0];
                 const dayOfWeek = dayDate.getDay();
-
+                const dayEl = document.createElement('div');
                 dayEl.textContent = day;
                 dayEl.className = 'day current-month';
                 dayEl.dataset.date = dayFormatted;
 
-                if ((dayOfWeek === 6 && !config.saturday.enabled) || (dayOfWeek === 0 && !config.sunday.enabled)) {
-                    dayEl.classList.add('text-gray-400', 'cursor-not-allowed', 'bg-gray-100');
-                    dayEl.classList.remove('current-month', 'hover:bg-gray-200');
-                } else {
-                    dayEl.classList.add('hover:bg-gray-200');
-                }
+                const isWorkingDay = (dayOfWeek === 6 && config.saturday.enabled) || (dayOfWeek === 0 && config.sunday.enabled) || (dayOfWeek > 0 && dayOfWeek < 6);
+                if (!isWorkingDay) dayEl.classList.add('text-gray-400', 'cursor-not-allowed', 'bg-gray-100');
+                else dayEl.classList.add('hover:bg-gray-200');
 
-                const hasAppointments = appointments[dayFormatted] && appointments[dayFormatted].some(appt => appt.client || appt.pet || appt.service);
-                if (hasAppointments) {
-                    dayEl.classList.add('has-appointments');
-                }
-
-                if (selectedDate && selectedDate.toISOString().split('T')[0] === dayFormatted) {
-                    dayEl.classList.add('selected-day');
-                }
-
+                if (appointments[dayFormatted]?.some(a => a.client)) dayEl.classList.add('has-appointments');
+                
                 const today = new Date();
-                if (dayDate.setHours(0,0,0,0) === today.setHours(0,0,0,0)) {
-                    dayEl.classList.add('font-bold', 'border-2', 'border-blue-500');
-                }
+                if (dayDate.setHours(0,0,0,0) === today.setHours(0,0,0,0)) dayEl.classList.add('font-bold', 'border-2', 'border-blue-500');
 
                 dayEl.addEventListener('click', () => {
-                    if ((dayOfWeek === 6 && !config.saturday.enabled) || (dayOfWeek === 0 && !config.sunday.enabled)) {
-                        return;
-                    }
-                    const previousSelected = document.querySelector('.selected-day');
-                    if (previousSelected) {
-                        previousSelected.classList.remove('selected-day');
-                    }
-                    dayEl.classList.add('selected-day');
+                    if (!isWorkingDay) return;
                     selectedDate = dayDate;
-                    const formattedDate = `${day < 10 ? '0' : ''}${day}/${(month + 1) < 10 ? '0' : ''}${month + 1}/${year}`;
-                    document.getElementById('selected-date-display').textContent = `Agendamentos para: ${formattedDate}`;
+                    document.querySelector('.selected-day')?.classList.remove('selected-day');
+                    dayEl.classList.add('selected-day');
+                    document.getElementById('selected-date-display').textContent = `Agendamentos para: ${dayDate.toLocaleDateString('pt-BR')}`;
                     document.getElementById('calendar-view').classList.add('hidden');
                     document.getElementById('appointment-view').classList.remove('hidden');
                     document.getElementById('action-buttons').classList.remove('hidden');
@@ -493,26 +396,19 @@
             scheduleBody.innerHTML = '';
             const selectedDateFormatted = selectedDate.toISOString().split('T')[0];
             const timeSlots = generateTimeSlots(selectedDate.getDay());
+            const defaultSlot = { client: '', pet: '', service: '', petSize: '', value: '', paymentMethod: '', contact: '', homeDelivery: false, history: '', isConcluded: false };
 
-            if (!appointments[selectedDateFormatted]) {
-                appointments[selectedDateFormatted] = timeSlots.map(time => ({
-                    time,
-                    client: '', pet: '', service: '', petSize: '', value: '', paymentMethod: '', contact: '', homeDelivery: false
-                }));
+            if (!appointments[selectedDateFormatted] || appointments[selectedDateFormatted].length < timeSlots.length) {
+                const existing = new Map(appointments[selectedDateFormatted]?.map(a => [a.time, a]));
+                appointments[selectedDateFormatted] = timeSlots.map(time => ({ ...defaultSlot, time, ...existing.get(time) }));
             }
             
-            const existingAppointments = appointments[selectedDateFormatted];
-            const newAppointments = timeSlots.map(timeSlot => {
-                const existing = existingAppointments.find(appt => appt.time === timeSlot);
-                return existing || { time: timeSlot, client: '', pet: '', service: '', petSize: '', value: '', paymentMethod: '', contact: '', homeDelivery: false };
-            });
-            appointments[selectedDateFormatted] = newAppointments;
-
-            const sortedAppointments = appointments[selectedDateFormatted].sort((a, b) => a.time.localeCompare(b.time));
-
-            sortedAppointments.forEach((slot) => {
+            appointments[selectedDateFormatted].sort((a, b) => a.time.localeCompare(b.time)).forEach(slot => {
+                const hasData = slot.client || slot.pet;
                 const tr = document.createElement('tr');
-                const hasData = slot.client || slot.pet || slot.service;
+                if (slot.isConcluded) {
+                    tr.classList.add('concluded');
+                }
                 tr.innerHTML = `
                     <td class="font-semibold">${slot.time}</td>
                     <td class="input-cell" data-time="${slot.time}">${slot.client || '--'}</td>
@@ -522,376 +418,424 @@
                     <td class="input-cell" data-time="${slot.time}">${slot.value || '--'}</td>
                     <td class="input-cell" data-time="${slot.time}">${slot.paymentMethod || '--'}</td>
                     <td class="input-cell" data-time="${slot.time}">${slot.contact || '--'}</td>
+                    <td class="text-center">
+                        ${hasData ? `<input type="checkbox" class="status-checkbox h-5 w-5 text-green-600 border-gray-300 rounded focus:ring-green-500" data-time="${slot.time}" ${slot.isConcluded ? 'checked' : ''}>` : ''}
+                    </td>
                     <td>
-                        <button class="edit-btn text-blue-500 hover:text-blue-700 transition-colors duration-200" data-time="${slot.time}">
-                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-3.111 2.5a.5.5 0 01.707 0L10 6.586l-2.5-2.5a.5.5 0 010-.707l.793-.793 2.828 2.828zM3 17.25V19a.75.75 0 00.75.75h1.75a.75.75 0 00.75-.75v-1.75a.75.75 0 00-.75-.75H3.75a.75.75 0 00-.75.75zM17 11.25a.75.75 0 00-.75-.75h-1.75a.75.75 0 00-.75.75v1.75a.75.75 0 00.75.75h1.75a.75.75 0 00.75-.75v-1.75z" />
-                            </svg>
-                        </button>
-                        ${hasData ? `<button class="delete-btn text-red-500 hover:text-red-700 transition-colors duration-200 ml-2" data-time="${slot.time}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
-                            </svg>
-                        </button>` : ''}
+                        <button class="edit-btn p-1 rounded-full hover:bg-gray-200" data-time="${slot.time}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
+                        ${hasData ? `<button class="delete-btn p-1 rounded-full hover:bg-gray-200 ml-2" data-time="${slot.time}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" /></svg></button>` : ''}
                     </td>
                 `;
-                tr.addEventListener('click', (e) => {
-                    const cell = e.target.closest('td');
-                    if (cell && cell.classList.contains('input-cell')) {
-                        const time = cell.dataset.time;
-                        showAppointmentModal(time);
-                    }
-                });
                 scheduleBody.appendChild(tr);
             });
         }
 
-        // LÓGICA: Gerenciamento de Modais
-        function showConfigModal() {
-            const configModal = document.getElementById('config-modal');
-            const weekdayStartTimeInput = document.getElementById('weekday-start-time');
-            const weekdayEndTimeInput = document.getElementById('weekday-end-time');
-            const saturdayToggleInput = document.getElementById('working-saturday-toggle');
-            const saturdayStartTimeInput = document.getElementById('saturday-start-time');
-            const saturdayEndTimeInput = document.getElementById('saturday-end-time');
-            const sundayToggleInput = document.getElementById('working-sunday-toggle');
-            const sundayStartTimeInput = document.getElementById('sunday-start-time');
-            const sundayEndTimeInput = document.getElementById('sunday-end-time');
-            
-            weekdayStartTimeInput.value = config.weekday.start;
-            weekdayEndTimeInput.value = config.weekday.end;
-            saturdayToggleInput.checked = config.saturday.enabled;
-            saturdayStartTimeInput.value = config.saturday.start;
-            saturdayEndTimeInput.value = config.saturday.end;
-            sundayToggleInput.checked = config.sunday.enabled;
-            sundayStartTimeInput.value = config.sunday.start;
-            sundayEndTimeInput.value = config.sunday.end;
-
-            renderServiceList();
-            configModal.classList.add('open');
-        }
-
-        function closeConfigModal() {
-            document.getElementById('config-modal').classList.remove('open');
-            editingServiceIndex = null;
-            document.getElementById('new-service-name').value = '';
-            document.getElementById('new-service-price-p').value = '';
-            document.getElementById('new-service-price-m').value = '';
-            document.getElementById('new-service-price-g').value = '';
+        // LÓGICA: Modais e Formulários
+        function setupModal(modalId, openBtnId, closeBtnId) {
+            const modal = document.getElementById(modalId);
+            const openBtn = document.getElementById(openBtnId);
+            const closeBtn = document.getElementById(closeBtnId);
+            openBtn?.addEventListener('click', () => modal.classList.add('open'));
+            closeBtn?.addEventListener('click', () => modal.classList.remove('open'));
+            modal?.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
         }
         
         function showAppointmentModal(time) {
+            const form = document.getElementById('appointment-form');
+            const modal = document.getElementById('appointment-modal');
+            const date = selectedDate.toISOString().split('T')[0];
+
+            form.reset();
             selectedTimeSlot = time;
-            const selectedDateFormatted = selectedDate.toISOString().split('T')[0];
-            const slotData = appointments[selectedDateFormatted].find(s => s.time === time) || {};
 
-            const modalTitle = document.getElementById('modal-title');
-            const modalClientNameInput = document.getElementById('modal-client-name');
-            const modalPetNameInput = document.getElementById('modal-pet-name');
-            const modalServiceSelect = document.getElementById('modal-service');
-            const modalPetSizeSelect = document.getElementById('modal-pet-size');
-            const modalValueInput = document.getElementById('modal-value');
-            const modalPaymentMethodSelect = document.getElementById('modal-payment-method');
-            const modalContactInput = document.getElementById('modal-contact');
-            const modalHomeDeliveryCheckbox = document.getElementById('modal-home-delivery');
+            const serviceSelect = form.elements.service;
+            serviceSelect.innerHTML = '<option value="">-- Selecione --</option>';
+            config.services.forEach(s => serviceSelect.insertAdjacentHTML('beforeend', `<option value="${s.name}">${s.name}</option>`));
+
+            const data = appointments[date]?.find(s => s.time === time) || {};
+            document.getElementById('modal-title').textContent = data.client ? `Editar Horário (${time})` : `Agendar Horário (${time})`;
             
-            modalTitle.textContent = slotData.client ? `Editar Horário (${time})` : `Agendar Horário (${time})`;
-            modalClientNameInput.value = slotData.client || '';
-            modalPetNameInput.value = slotData.pet || '';
-            modalServiceSelect.value = slotData.service || '';
-            modalPetSizeSelect.value = slotData.petSize || '';
-            modalValueInput.value = slotData.value || '';
-            modalPaymentMethodSelect.value = slotData.paymentMethod || '';
-            modalContactInput.value = slotData.contact || '';
-            modalHomeDeliveryCheckbox.checked = slotData.homeDelivery || false;
-
-            modalServiceSelect.innerHTML = '<option value="">-- Selecione --</option>';
-            config.services.forEach(service => {
-                const option = document.createElement('option');
-                option.value = service.name;
-                option.textContent = service.name;
-                modalServiceSelect.appendChild(option);
-            });
-            modalServiceSelect.value = slotData.service || '';
+            form.elements.client.value = data.client || '';
+            form.elements.pet.value = data.pet || '';
+            form.elements['pet-size'].value = data.petSize || '';
+            form.elements.value.value = data.value || '';
+            form.elements['payment-method'].value = data.paymentMethod || '';
+            form.elements.contact.value = data.contact || '';
+            form.elements.history.value = data.history || '';
+            form.elements['modal-home-delivery'].checked = data.homeDelivery || false;
+            form.elements.isConcluded.checked = data.isConcluded || false;
+            serviceSelect.value = data.service || '';
+            document.getElementById('delete-appointment').classList.toggle('hidden', !data.client);
             
-            document.getElementById('delete-appointment').classList.toggle('hidden', !slotData.client);
-
-            document.getElementById('appointment-modal').classList.add('open');
+            modal.classList.add('open');
+            updateValue();
         }
-        
-        function closeAppointmentModal() {
-            document.getElementById('appointment-modal').classList.remove('open');
-        }
-
-        // LÓGICA: Gerenciamento de Serviços
-        function renderServiceList() {
-            const serviceListUl = document.getElementById('service-list');
-            serviceListUl.innerHTML = '';
-            config.services.forEach((service, index) => {
-                const li = document.createElement('li');
-                li.className = 'flex justify-between items-center bg-gray-100 p-2 rounded-md';
-                li.innerHTML = `
-                    <div class="flex-1">
-                        <span class="font-semibold">${service.name}: </span>
-                        <span>(P: R$ ${service.prices.P}) </span>
-                        <span>(M: R$ ${service.prices.M}) </span>
-                        <span>(G: R$ ${service.prices.G})</span>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button type="button" class="edit-service-btn text-blue-500 hover:text-blue-700 transition-colors duration-200" data-index="${index}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM5 11h2v2H5v-2zM4 14a1 1 0 011-1h6a1 1 0 110 2H5a1 1 0 01-1-1z" clip-rule="evenodd" fill-rule="evenodd" />
-                            </svg>
-                        </button>
-                        <button type="button" class="delete-service-btn text-red-500 hover:text-red-700 transition-colors duration-200" data-index="${index}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                `;
-                serviceListUl.appendChild(li);
-            });
-        }
-
-        // LÓGICA: Event Listeners do pop-up de agendamento
-        document.getElementById('modal-service').addEventListener('change', updateValue);
-        document.getElementById('modal-pet-size').addEventListener('change', updateValue);
 
         function updateValue() {
-            const selectedService = document.getElementById('modal-service').value;
-            const selectedPetSize = document.getElementById('modal-pet-size').value;
-            const valueInput = document.getElementById('modal-value');
+            const form = document.getElementById('appointment-form');
+            const serviceName = form.elements.service.value;
+            const petSize = form.elements['pet-size'].value;
+            const payment = form.elements['payment-method'].value;
+            const valueInput = form.elements.value;
             
-            if (selectedService && selectedPetSize) {
-                const service = config.services.find(s => s.name === selectedService);
-                if (service) {
-                    let price = '';
-                    switch(selectedPetSize) {
-                        case 'Pequeno':
-                            price = service.prices.P;
-                            break;
-                        case 'Médio':
-                            price = service.prices.M;
-                            break;
-                        case 'Grande':
-                            price = service.prices.G;
-                            break;
-                        default:
-                            price = '';
+            if (serviceName && petSize) {
+                const service = config.services.find(s => s.name === serviceName);
+                const priceStr = service?.prices[petSize.charAt(0).toUpperCase()];
+                if (priceStr) {
+                    let baseValue = parseFloat(priceStr.replace(',', '.'));
+                    if (payment === 'Crédito') {
+                        baseValue *= 1 + (parseFloat(config.cardFee) / 100);
                     }
-                    valueInput.value = price;
+                    valueInput.value = baseValue.toFixed(2).replace('.', ',');
+                } else {
+                    valueInput.value = '';
                 }
-            } else {
-                valueInput.value = '';
             }
         }
         
-        // LÓGICA: Event Listeners
-        document.getElementById('open-config-modal').addEventListener('click', showConfigModal);
-        document.getElementById('close-config-modal').addEventListener('click', closeConfigModal);
-        document.getElementById('config-modal').addEventListener('click', (e) => { if (e.target === document.getElementById('config-modal')) closeConfigModal(); });
-
-        document.getElementById('config-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            config.weekday.start = document.getElementById('weekday-start-time').value;
-            config.weekday.end = document.getElementById('weekday-end-time').value;
-            config.saturday.enabled = document.getElementById('working-saturday-toggle').checked;
-            config.saturday.start = document.getElementById('saturday-start-time').value;
-            config.saturday.end = document.getElementById('saturday-end-time').value;
-            config.sunday.enabled = document.getElementById('working-sunday-toggle').checked;
-            config.sunday.start = document.getElementById('sunday-start-time').value;
-            config.sunday.end = document.getElementById('sunday-end-time').value;
-
-            saveConfig();
-            closeConfigModal();
-            renderCalendar();
-            showMessage('Configurações salvas!');
-        });
-        
-        document.getElementById('add-service-btn').addEventListener('click', () => {
-            const newServiceNameInput = document.getElementById('new-service-name');
-            const newServicePricePInput = document.getElementById('new-service-price-p');
-            const newServicePriceMInput = document.getElementById('new-service-price-m');
-            const newServicePriceGInput = document.getElementById('new-service-price-g');
-
-            const newServiceName = newServiceNameInput.value.trim();
-            const newServicePriceP = newServicePricePInput.value.trim();
-            const newServicePriceM = newServicePriceMInput.value.trim();
-            const newServicePriceG = newServicePriceGInput.value.trim();
+        // LÓGICA: Gerenciamento de Clientes
+        function renderClientList(filter = '') {
+            const listEl = document.getElementById('client-list');
+            listEl.innerHTML = '';
+            const filteredClients = Object.values(clients).filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
             
-            if (newServiceName && newServicePriceP && newServicePriceM && newServicePriceG) {
-                if (editingServiceIndex !== null) {
-                    // Modo de edição
-                    config.services[editingServiceIndex].name = newServiceName;
-                    config.services[editingServiceIndex].prices.P = newServicePriceP;
-                    config.services[editingServiceIndex].prices.M = newServicePriceM;
-                    config.services[editingServiceIndex].prices.G = newServicePriceG;
-                    editingServiceIndex = null;
-                    showMessage('Serviço atualizado com sucesso!');
-                } else {
-                    // Modo de adição
-                    const existingService = config.services.find(s => s.name === newServiceName);
-                    if (existingService) {
-                        showMessage('Este serviço já existe.', 'error');
-                        return;
-                    }
-                    config.services.push({
-                        name: newServiceName,
-                        prices: {
-                            P: newServicePriceP,
-                            M: newServicePriceM,
-                            G: newServicePriceG
-                        }
-                    });
-                    showMessage('Serviço adicionado!');
-                }
-                saveConfig();
-                renderServiceList();
-                newServiceNameInput.value = '';
-                newServicePricePInput.value = '';
-                newServicePriceMInput.value = '';
-                newServicePriceGInput.value = '';
-            } else {
-                showMessage('Preencha todos os campos do serviço.', 'error');
-            }
-        });
+            filteredClients.forEach(client => {
+                const pets = Array.from(client.pets).join(', ') || 'Nenhum pet cadastrado';
+                listEl.insertAdjacentHTML('beforeend', `
+                    <div class="bg-gray-50 p-3 rounded-md">
+                        <p class="font-semibold">${client.name}</p>
+                        <p class="text-sm text-gray-600">Contato: ${client.contact || 'Não informado'}</p>
+                        <p class="text-sm text-gray-600">Pets: ${pets}</p>
+                    </div>
+                `);
+            });
+        }
         
-        document.getElementById('service-list').addEventListener('click', (e) => {
-            const deleteBtn = e.target.closest('.delete-service-btn');
-            const editBtn = e.target.closest('.edit-service-btn');
+        // Inicialização e Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            Object.values(clients).forEach(c => { c.pets = new Set(c.pets); });
+            renderCalendar();
+            
+            setupModal('config-modal', 'open-config-modal', 'close-config-modal');
+            setupModal('clients-modal', 'open-clients-modal', 'close-clients-modal');
+            setupModal('package-modal', 'package-appointment-btn', 'close-package-modal');
+            setupModal('appointment-modal', null, 'close-appointment-modal');
 
-            if (deleteBtn) {
-                const index = deleteBtn.dataset.index;
-                if (confirm('Tem certeza que deseja excluir este serviço?')) {
-                    config.services.splice(index, 1);
+            document.getElementById('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
+            document.getElementById('next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); });
+            document.getElementById('back-to-calendar').addEventListener('click', () => {
+                document.getElementById('appointment-view').classList.add('hidden');
+                document.getElementById('calendar-view').classList.remove('hidden');
+                document.getElementById('action-buttons').classList.add('hidden');
+                selectedDate = null;
+                renderCalendar();
+            });
+
+            document.getElementById('open-config-modal').addEventListener('click', () => {
+                const form = document.getElementById('config-form');
+                form.elements['weekday-start-time'].value = config.weekday.start;
+                form.elements['weekday-end-time'].value = config.weekday.end;
+                form.elements['working-saturday-toggle'].checked = config.saturday.enabled;
+                form.elements['saturday-start-time'].value = config.saturday.start;
+                form.elements['saturday-end-time'].value = config.saturday.end;
+                form.elements['working-sunday-toggle'].checked = config.sunday.enabled;
+                form.elements['sunday-start-time'].value = config.sunday.start;
+                form.elements['sunday-end-time'].value = config.sunday.end;
+                form.elements['card-fee'].value = config.cardFee;
+                renderServiceList();
+            });
+
+            document.getElementById('config-form').addEventListener('submit', e => {
+                e.preventDefault();
+                const form = e.target;
+                config.weekday.start = form.elements['weekday-start-time'].value;
+                config.weekday.end = form.elements['weekday-end-time'].value;
+                config.saturday.enabled = form.elements['working-saturday-toggle'].checked;
+                config.saturday.start = form.elements['saturday-start-time'].value;
+                config.saturday.end = form.elements['saturday-end-time'].value;
+                config.sunday.enabled = form.elements['working-sunday-toggle'].checked;
+                config.sunday.start = form.elements['sunday-start-time'].value;
+                config.sunday.end = form.elements['sunday-end-time'].value;
+                config.cardFee = form.elements['card-fee'].value;
+                saveConfig();
+                showMessage('Configurações salvas!');
+                document.getElementById('config-modal').classList.remove('open');
+                renderCalendar();
+                if(selectedDate) renderTable();
+            });
+
+            document.getElementById('add-service-btn').addEventListener('click', () => {
+                const nameInput = document.getElementById('new-service-name');
+                const pInput = document.getElementById('new-service-price-p');
+                const mInput = document.getElementById('new-service-price-m');
+                const gInput = document.getElementById('new-service-price-g');
+                
+                if (nameInput.value && pInput.value && mInput.value && gInput.value) {
+                    const newService = { name: nameInput.value, prices: { P: pInput.value, M: mInput.value, G: gInput.value } };
+                    if (editingServiceIndex !== null) {
+                        config.services[editingServiceIndex] = newService;
+                        showMessage('Serviço atualizado!');
+                    } else {
+                        config.services.push(newService);
+                        showMessage('Serviço adicionado!');
+                    }
+                    editingServiceIndex = null;
+                    [nameInput, pInput, mInput, gInput].forEach(i => i.value = '');
                     saveConfig();
                     renderServiceList();
-                    showMessage('Serviço removido.');
+                } else {
+                    showMessage('Preencha todos os campos do serviço.', 'error');
                 }
-            } else if (editBtn) {
-                const index = editBtn.dataset.index;
-                editingServiceIndex = index;
-                const serviceToEdit = config.services[index];
-                document.getElementById('new-service-name').value = serviceToEdit.name;
-                document.getElementById('new-service-price-p').value = serviceToEdit.prices.P;
-                document.getElementById('new-service-price-m').value = serviceToEdit.prices.M;
-                document.getElementById('new-service-price-g').value = serviceToEdit.prices.G;
-            }
-        });
+            });
 
-        document.getElementById('add-appointment-btn').addEventListener('click', () => {
-            const selectedDateFormatted = selectedDate.toISOString().split('T')[0];
-            const firstAvailableSlot = appointments[selectedDateFormatted].find(s => !s.client && !s.pet && !s.service);
-            if (firstAvailableSlot) {
-                showAppointmentModal(firstAvailableSlot.time);
-            } else {
-                showMessage("Nenhum horário disponível para agendar.", 'error');
-            }
-        });
-        
-        document.getElementById('close-appointment-modal').addEventListener('click', closeAppointmentModal);
-        document.getElementById('appointment-modal').addEventListener('click', (e) => { if (e.target === document.getElementById('appointment-modal')) closeAppointmentModal(); });
-
-        document.getElementById('appointment-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const selectedDateFormatted = selectedDate.toISOString().split('T')[0];
-            const slotToUpdate = appointments[selectedDateFormatted].find(s => s.time === selectedTimeSlot);
-
-            if (slotToUpdate) {
-                slotToUpdate.client = document.getElementById('modal-client-name').value;
-                slotToUpdate.pet = document.getElementById('modal-pet-name').value;
-                slotToUpdate.service = document.getElementById('modal-service').value;
-                slotToUpdate.petSize = document.getElementById('modal-pet-size').value;
-                slotToUpdate.value = document.getElementById('modal-value').value;
-                slotToUpdate.paymentMethod = document.getElementById('modal-payment-method').value;
-                slotToUpdate.contact = document.getElementById('modal-contact').value;
-                slotToUpdate.homeDelivery = document.getElementById('modal-home-delivery').checked;
-            }
-            saveAppointments();
-            closeAppointmentModal();
-            renderTable();
-            renderCalendar();
-            showMessage('Compromisso salvo com sucesso!');
-        });
-        
-        document.getElementById('delete-appointment').addEventListener('click', () => {
-            const selectedDateFormatted = selectedDate.toISOString().split('T')[0];
-            const slotToUpdate = appointments[selectedDateFormatted].find(s => s.time === selectedTimeSlot);
-            
-            if (slotToUpdate) {
-                slotToUpdate.client = '';
-                slotToUpdate.pet = '';
-                slotToUpdate.service = '';
-                slotToUpdate.petSize = '';
-                slotToUpdate.value = '';
-                slotToUpdate.paymentMethod = '';
-                slotToUpdate.contact = '';
-                slotToUpdate.homeDelivery = false;
-            }
-            saveAppointments();
-            closeAppointmentModal();
-            renderTable();
-            renderCalendar();
-            showMessage('Compromisso excluído.');
-        });
-
-        document.getElementById('schedule-body').addEventListener('click', (e) => {
-            const cell = e.target.closest('td');
-            if (cell) {
-                const time = cell.dataset.time;
-                const editBtn = e.target.closest('.edit-btn');
-                const deleteBtn = e.target.closest('.delete-btn');
-                
+            document.getElementById('service-list').addEventListener('click', async e => {
+                const editBtn = e.target.closest('.edit-service-btn');
+                const deleteBtn = e.target.closest('.delete-service-btn');
                 if (editBtn) {
-                    showAppointmentModal(time);
-                } else if (deleteBtn) {
-                    const selectedDateFormatted = selectedDate.toISOString().split('T')[0];
-                    const slotToUpdate = appointments[selectedDateFormatted].find(s => s.time === time);
-                    if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-                         if (slotToUpdate) {
-                             slotToUpdate.client = '';
-                             slotToUpdate.pet = '';
-                             slotToUpdate.service = '';
-                             slotToUpdate.petSize = '';
-                             slotToUpdate.value = '';
-                             slotToUpdate.paymentMethod = '';
-                             slotToUpdate.contact = '';
-                             slotToUpdate.homeDelivery = false;
-                         }
-                         saveAppointments();
-                         renderTable();
-                         renderCalendar(); 
-                         showMessage('Compromisso excluído.');
-                    }
-                } else if (cell.classList.contains('input-cell')) {
-                    showAppointmentModal(time);
+                    editingServiceIndex = parseInt(editBtn.dataset.index);
+                    const service = config.services[editingServiceIndex];
+                    document.getElementById('new-service-name').value = service.name;
+                    document.getElementById('new-service-price-p').value = service.prices.P;
+                    document.getElementById('new-service-price-m').value = service.prices.M;
+                    document.getElementById('new-service-price-g').value = service.prices.G;
                 }
+                if (deleteBtn) {
+                    const index = parseInt(deleteBtn.dataset.index);
+                    if (await customConfirm('Deseja excluir este serviço?')) {
+                        config.services.splice(index, 1);
+                        saveConfig();
+                        renderServiceList();
+                        showMessage('Serviço removido.');
+                    }
+                }
+            });
+            
+             function renderServiceList() {
+                const listEl = document.getElementById('service-list');
+                listEl.innerHTML = '';
+                config.services.forEach((service, index) => {
+                    listEl.insertAdjacentHTML('beforeend', `
+                        <li class="flex justify-between items-center bg-gray-100 p-2 rounded-md">
+                            <div class="flex-1 text-sm">
+                                <span class="font-semibold">${service.name}: </span>
+                                <span>(P: R$${service.prices.P}) </span>
+                                <span>(M: R$${service.prices.M}) </span>
+                                <span>(G: R$${service.prices.G})</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button type="button" class="edit-service-btn p-1" data-index="${index}"><svg class="h-5 w-5 text-blue-500 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM5 11h2v2H5v-2zM4 14a1 1 0 011-1h6a1 1 0 110 2H5a1 1 0 01-1-1z"/></svg></button>
+                                <button type="button" class="delete-service-btn p-1" data-index="${index}"><svg class="h-5 w-5 text-red-500 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" /></svg></button>
+                            </div>
+                        </li>
+                    `);
+                });
             }
-        });
 
-        document.getElementById('back-to-calendar').addEventListener('click', () => {
-            document.getElementById('appointment-view').classList.add('hidden');
-            document.getElementById('calendar-view').classList.remove('hidden');
-            document.getElementById('action-buttons').classList.add('hidden');
-            renderCalendar();
-        });
+            document.getElementById('appointment-form').addEventListener('submit', e => {
+                e.preventDefault();
+                const form = e.target;
+                const date = selectedDate.toISOString().split('T')[0];
+                const slot = appointments[date].find(s => s.time === selectedTimeSlot);
+                
+                slot.client = form.elements.client.value;
+                slot.pet = form.elements.pet.value;
+                slot.service = form.elements.service.value;
+                slot.petSize = form.elements['pet-size'].value;
+                slot.value = form.elements.value.value;
+                slot.paymentMethod = form.elements['payment-method'].value;
+                slot.contact = form.elements.contact.value;
+                slot.history = form.elements.history.value;
+                slot.homeDelivery = form.elements['modal-home-delivery'].checked;
+                slot.isConcluded = form.elements.isConcluded.checked;
+                
+                updateClientDatabase(slot.client, slot.contact, slot.pet);
+                saveAppointments();
+                showMessage('Compromisso salvo!');
+                document.getElementById('appointment-modal').classList.remove('open');
+                renderTable();
+                renderCalendar();
+            });
 
-        document.getElementById('prev-month').addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            renderCalendar();
-        });
+            document.getElementById('delete-appointment').addEventListener('click', async () => {
+                if (await customConfirm('Deseja excluir este agendamento?')) {
+                    const date = selectedDate.toISOString().split('T')[0];
+                    const slot = appointments[date].find(s => s.time === selectedTimeSlot);
+                    Object.assign(slot, { client: '', pet: '', service: '', petSize: '', value: '', paymentMethod: '', contact: '', history: '', homeDelivery: false, isConcluded: false });
+                    saveAppointments();
+                    showMessage('Compromisso excluído.');
+                    document.getElementById('appointment-modal').classList.remove('open');
+                    renderTable();
+                    renderCalendar();
+                }
+            });
 
-        document.getElementById('next-month').addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            renderCalendar();
-        });
+            ['modal-service', 'modal-pet-size', 'modal-payment-method'].forEach(id => {
+                document.getElementById(id).addEventListener('change', updateValue);
+            });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!localStorage.getItem('config')) {
-                 saveConfig();
-            }
-            renderCalendar();
+            const scheduleBody = document.getElementById('schedule-body');
+            scheduleBody.addEventListener('click', async e => {
+                const target = e.target.closest('button, .input-cell');
+                if (!target) return;
+                const time = target.dataset.time;
+                if (target.classList.contains('edit-btn') || target.classList.contains('input-cell')) {
+                    showAppointmentModal(time);
+                } else if (target.classList.contains('delete-btn')) {
+                    if (await customConfirm('Deseja excluir este agendamento?')) {
+                        const date = selectedDate.toISOString().split('T')[0];
+                        const slot = appointments[date].find(s => s.time === time);
+                        Object.assign(slot, { client: '', pet: '', service: '', petSize: '', value: '', paymentMethod: '', contact: '', history: '', homeDelivery: false, isConcluded: false });
+                        saveAppointments();
+                        renderTable();
+                        renderCalendar();
+                        showMessage('Compromisso excluído.');
+                    }
+                }
+            });
+            scheduleBody.addEventListener('change', e => {
+                if (e.target.classList.contains('status-checkbox')) {
+                    const time = e.target.dataset.time;
+                    const date = selectedDate.toISOString().split('T')[0];
+                    const slot = appointments[date].find(s => s.time === time);
+                    if (slot) {
+                        slot.isConcluded = e.target.checked;
+                        saveAppointments();
+                        renderTable();
+                    }
+                }
+            });
+            
+            document.getElementById('open-clients-modal').addEventListener('click', () => renderClientList());
+            document.getElementById('client-search').addEventListener('input', e => renderClientList(e.target.value));
+            
+            // Autocomplete Logic
+            const clientInput = document.getElementById('modal-client-name');
+            const clientSuggestionsEl = document.getElementById('client-autocomplete');
+            const petInput = document.getElementById('modal-pet-name');
+            const petSuggestionsEl = document.getElementById('pet-autocomplete');
+
+            const showPetSuggestions = () => {
+                const clientName = clientInput.value.trim().toLowerCase();
+                const client = clients[clientName];
+                petSuggestionsEl.innerHTML = '';
+                if (client && client.pets.size > 0) {
+                    petSuggestionsEl.classList.remove('hidden');
+                    client.pets.forEach(petName => {
+                        const div = document.createElement('div');
+                        div.textContent = petName;
+                        div.className = 'autocomplete-suggestion';
+                        div.addEventListener('click', () => {
+                            petInput.value = petName;
+                            petSuggestionsEl.classList.add('hidden');
+                        });
+                        petSuggestionsEl.appendChild(div);
+                    });
+                } else {
+                    petSuggestionsEl.classList.add('hidden');
+                }
+            };
+
+            clientInput.addEventListener('input', () => {
+                const query = clientInput.value.toLowerCase();
+                clientSuggestionsEl.innerHTML = '';
+                if (query.length < 1) {
+                    clientSuggestionsEl.classList.add('hidden');
+                    return;
+                }
+                const filtered = Object.values(clients).filter(c => c.name.toLowerCase().includes(query));
+                if (filtered.length) {
+                    clientSuggestionsEl.classList.remove('hidden');
+                    filtered.forEach(c => {
+                        const div = document.createElement('div');
+                        div.textContent = c.name;
+                        div.className = 'autocomplete-suggestion';
+                        div.addEventListener('click', () => {
+                            clientInput.value = c.name;
+                            document.getElementById('modal-contact').value = c.contact;
+                            clientSuggestionsEl.classList.add('hidden');
+                            showPetSuggestions();
+                            petInput.focus();
+                        });
+                        clientSuggestionsEl.appendChild(div);
+                    });
+                } else {
+                    clientSuggestionsEl.classList.add('hidden');
+                }
+            });
+            
+            clientInput.addEventListener('blur', () => setTimeout(() => clientSuggestionsEl.classList.add('hidden'), 200));
+            petInput.addEventListener('focus', showPetSuggestions);
+            petInput.addEventListener('blur', () => setTimeout(() => petSuggestionsEl.classList.add('hidden'), 200));
+
+
+            document.getElementById('package-appointment-btn').addEventListener('click', () => {
+                const clientSelect = document.getElementById('package-client');
+                const serviceSelect = document.getElementById('package-service');
+                clientSelect.innerHTML = '<option value="">Selecione um cliente</option>';
+                Object.values(clients).sort((a,b) => a.name.localeCompare(b.name)).forEach(c => clientSelect.insertAdjacentHTML('beforeend', `<option value="${c.name.toLowerCase()}">${c.name}</option>`));
+                serviceSelect.innerHTML = '<option value="">Selecione um serviço</option>';
+                config.services.forEach(s => serviceSelect.insertAdjacentHTML('beforeend', `<option value="${s.name}">${s.name}</option>`));
+                document.getElementById('package-pet').innerHTML = '';
+                document.getElementById('package-start-date').valueAsDate = selectedDate || new Date();
+                document.getElementById('package-modal').classList.add('open');
+            });
+            
+            document.getElementById('package-client').addEventListener('change', e => {
+                const petSelect = document.getElementById('package-pet');
+                petSelect.innerHTML = '';
+                const client = clients[e.target.value];
+                if (client) {
+                    client.pets.forEach(pet => petSelect.insertAdjacentHTML('beforeend', `<option value="${pet}">${pet}</option>`));
+                }
+            });
+
+            document.getElementById('package-form').addEventListener('submit', e => {
+                e.preventDefault();
+                const form = e.target;
+                const clientKey = form.elements['package-client'].value;
+                const client = clients[clientKey];
+                const pet = form.elements['package-pet'].value;
+                const service = form.elements['package-service'].value;
+                const frequency = parseInt(form.elements['package-frequency'].value);
+                const sessions = parseInt(form.elements['package-sessions'].value);
+                const startDate = new Date(form.elements['package-start-date'].value + 'T00:00:00');
+                const defaultSlot = { client: '', pet: '', service: '', petSize: '', value: '', paymentMethod: '', contact: '', homeDelivery: false, history: '', isConcluded: false };
+
+                if (!client || !pet || !service) {
+                    showMessage('Por favor, preencha todos os campos.', 'error');
+                    return;
+                }
+                
+                let scheduledCount = 0;
+                let currentDate = startDate;
+                for (let i = 0; i < sessions; i++) {
+                    const dateStr = currentDate.toISOString().split('T')[0];
+                    const dayOfWeek = currentDate.getDay();
+                    const slots = generateTimeSlots(dayOfWeek);
+                    if (!appointments[dateStr]) {
+                        appointments[dateStr] = slots.map(time => ({ ...defaultSlot, time }));
+                    }
+                    const availableSlot = appointments[dateStr].find(s => !s.client);
+                    
+                    if (availableSlot) {
+                        Object.assign(availableSlot, {
+                            client: client.name,
+                            pet: pet,
+                            service: service,
+                            contact: client.contact,
+                            history: `Sessão ${i+1}/${sessions} do pacote.`
+                        });
+                        scheduledCount++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + frequency);
+                }
+                
+                saveAppointments();
+                showMessage(`${scheduledCount} de ${sessions} sessões agendadas com sucesso!`);
+                document.getElementById('package-modal').classList.remove('open');
+                renderCalendar();
+                if(selectedDate) renderTable();
+            });
         });
     </script>
 </body>
