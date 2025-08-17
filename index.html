@@ -102,6 +102,19 @@
             display: flex; justify-content: center; align-items: center;
             z-index: 2000; font-size: 1.25rem; font-weight: 600; color: #1f2937;
         }
+        /* Estilos para o modal de senha */
+        #password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
@@ -110,9 +123,28 @@
         A carregar dados da agenda online...
     </div>
 
-    <!-- Container principal da aplicação -->
-    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-7xl w-full">
-        <h1 class="text-3xl font-bold text-center mb-6">Agenda de Compromissos Online</h1>
+    <!-- Modal de Senha -->
+    <div id="password-modal">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
+            <h2 class="text-2xl font-bold mb-4">Acesso Restrito</h2>
+            <p class="mb-6 text-gray-600">Por favor, insira as suas credenciais para aceder à agenda.</p>
+            <form id="password-form" class="space-y-4">
+                <input type="text" id="username-input" class="w-full border p-3 rounded-md text-center" placeholder="Utilizador" autocomplete="username">
+                <input type="password" id="password-input" class="w-full border p-3 rounded-md text-center" placeholder="******" autocomplete="current-password">
+                <button type="submit" class="w-full py-3 px-4 rounded-md text-white bg-blue-600 hover:bg-blue-700 font-semibold">Entrar</button>
+                <p id="password-error" class="text-red-500 text-sm h-5"></p>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Container principal da aplicação (inicialmente oculto) -->
+    <div id="app-container" class="bg-white p-8 rounded-2xl shadow-xl max-w-7xl w-full hidden">
+        <div class="flex justify-between items-center mb-6">
+             <h1 class="text-3xl font-bold text-center flex-grow">Agenda de Compromissos Online</h1>
+             <button id="logout-btn" class="py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors duration-200">Sair</button>
+        </div>
+       
         <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
             <div class="flex space-x-2">
                  <button id="open-config-modal" class="py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white bg-gray-500 hover:bg-gray-600 transition-colors duration-200">
@@ -163,7 +195,7 @@
 
     <!-- Modais -->
     <div id="config-modal" class="modal-overlay">
-        <div class="modal-content"><h2 class="text-2xl font-bold mb-4 text-center">Configurações</h2><form id="config-form" class="space-y-6"><div><h3 class="text-lg font-semibold mb-2">Segunda a Sexta</h3><div class="flex space-x-4"><div class="flex-1"><label for="weekday-start-time">Início:</label><input type="time" id="weekday-start-time" class="mt-1 block w-full border border-gray-300 rounded-md p-2"></div><div class="flex-1"><label for="weekday-end-time">Fim:</label><input type="time" id="weekday-end-time" class="mt-1 block w-full border border-gray-300 rounded-md p-2"></div></div></div><div><h3 class="text-lg font-semibold mb-2">Fim de Semana</h3><div class="space-y-4"><div class="flex items-center space-x-4"><input type="checkbox" id="working-saturday-toggle"><label for="working-saturday-toggle">Sábado</label><div class="flex-1 flex space-x-4"><div><label for="saturday-start-time">Início:</label><input type="time" id="saturday-start-time" class="mt-1 w-full border p-2 rounded"></div><div><label for="saturday-end-time">Fim:</label><input type="time" id="saturday-end-time" class="mt-1 w-full border p-2 rounded"></div></div></div><div class="flex items-center space-x-4"><input type="checkbox" id="working-sunday-toggle"><label for="working-sunday-toggle">Domingo</label><div class="flex-1 flex space-x-4"><div><label for="sunday-start-time">Início:</label><input type="time" id="sunday-start-time" class="mt-1 w-full border p-2 rounded"></div><div><label for="sunday-end-time">Fim:</label><input type="time" id="sunday-end-time" class="mt-1 w-full border p-2 rounded"></div></div></div></div></div><div><h3 class="text-lg font-semibold mb-2">Taxa de Cartão (%)</h3><input type="text" id="card-fee" class="w-full border p-2 rounded"></div><div><h3 class="text-lg font-semibold mb-2">Serviços</h3><ul id="service-list" class="space-y-2 max-h-40 overflow-y-auto pr-2 mb-4"></ul><div class="space-y-2"><input type="text" id="new-service-name" placeholder="Nome do serviço" class="w-full border p-2 rounded"><div class="flex space-x-2"><input type="text" id="new-service-price-p" placeholder="Preço P (R$)" class="flex-1 border p-2 rounded"><input type="text" id="new-service-price-m" placeholder="Preço M (R$)" class="flex-1 border p-2 rounded"><input type="text" id="new-service-price-g" placeholder="Preço G (R$)" class="flex-1 border p-2 rounded"></div><button type="button" id="add-service-btn" class="w-full py-2 px-4 rounded-md text-white bg-green-600 hover:bg-green-700">Adicionar/Salvar</button></div></div><div class="flex justify-end space-x-4 mt-6"><button type="button" id="close-config-modal" class="py-2 px-4 rounded-md border">Fechar</button><button type="submit" class="py-2 px-4 rounded-md text-white bg-blue-600 hover:bg-blue-700">Salvar</button></div></form></div>
+        <div class="modal-content"><h2 class="text-2xl font-bold mb-4 text-center">Configurações</h2><form id="config-form" class="space-y-6"><div><h3 class="text-lg font-semibold mb-2">Segunda a Sexta</h3><div class="flex space-x-4"><div class="flex-1"><label for="weekday-start-time">Início:</label><input type="time" id="weekday-start-time" class="mt-1 block w-full border border-gray-300 rounded-md p-2"></div><div class="flex-1"><label for="weekday-end-time">Fim:</label><input type="time" id="weekday-end-time" class="mt-1 block w-full border border-gray-300 rounded-md p-2"></div></div></div><div><h3 class="text-lg font-semibold mb-2">Fim de Semana</h3><div class="space-y-4"><div class="flex items-center space-x-4"><input type="checkbox" id="working-saturday-toggle"><label for="working-saturday-toggle">Sábado</label><div class="flex-1 flex space-x-4"><div><label for="saturday-start-time">Início:</label><input type="time" id="saturday-start-time" class="mt-1 w-full border p-2 rounded"></div><div><label for="saturday-end-time">Fim:</label><input type="time" id="saturday-end-time" class="mt-1 w-full border p-2 rounded"></div></div></div><div class="flex items-center space-x-4"><input type="checkbox" id="working-sunday-toggle"><label for="working-sunday-toggle">Domingo</label><div class="flex-1 flex space-x-4"><div><label for="sunday-start-time">Início:</label><input type="time" id="sunday-start-time" class="mt-1 w-full border p-2 rounded"></div><div><label for="sunday-end-time">Fim:</label><input type="time" id="sunday-end-time" class="mt-1 w-full border p-2 rounded"></div></div></div></div></div><div><h3 class="text-lg font-semibold mb-2">Taxa de Cartão (%)</h3><input type="text" id="card-fee" class="w-full border p-2 rounded"></div><div><h3 class="text-lg font-semibold mb-2">Serviços</h3><ul id="service-list" class="space-y-2 max-h-40 overflow-y-auto pr-2 mb-4"></ul><div class="space-y-2"><input type="text" id="new-service-name" placeholder="Nome do serviço" class="w-full border p-2 rounded"><div class="flex space-x-2"><input type="text" id="new-service-price-p" placeholder="Preço P (R$)" class="flex-1 border p-2 rounded"><input type="text" id="new-service-price-m" placeholder="Preço M (R$)" class="flex-1 border p-2 rounded"><input type="text" id="new-service-price-g" placeholder="Preço G (R$)" class="flex-1 border p-2 rounded"></div><button type="button" id="add-service-btn" class="w-full py-2 px-4 rounded-md text-white bg-green-600 hover:bg-green-700">Adicionar/Salvar</button></div></div><div id="user-management-section" class="hidden"><hr class="my-4"><h3 class="text-lg font-semibold mb-2">Gestão de Utilizadores</h3><ul id="user-list" class="space-y-2 max-h-40 overflow-y-auto pr-2 mb-4"></ul><div class="space-y-2 bg-gray-50 p-3 rounded-md"><input type="hidden" id="editing-user-index"><input type="text" id="new-username" placeholder="Nome de utilizador" class="w-full border p-2 rounded"><input type="password" id="new-user-password" placeholder="Senha" class="w-full border p-2 rounded mt-2"><select id="new-user-level" class="w-full border p-2 rounded mt-2"><option value="Funcionário">Funcionário</option><option value="Admin">Admin</option></select><button type="button" id="add-user-btn" class="w-full py-2 px-4 rounded-md text-white bg-green-600 hover:bg-green-700 mt-2">Adicionar/Salvar Utilizador</button></div></div><div class="flex justify-end space-x-4 mt-6"><button type="button" id="close-config-modal" class="py-2 px-4 rounded-md border">Fechar</button><button type="submit" class="py-2 px-4 rounded-md text-white bg-blue-600 hover:bg-blue-700">Salvar Configurações</button></div></form></div>
     </div>
     <div id="appointment-modal" class="modal-overlay">
         <div class="modal-content"><h2 id="modal-title" class="text-2xl font-bold mb-4">Agendar Horário</h2><form id="appointment-form" class="space-y-4"><div><label>Cliente</label><div class="relative"><input type="text" id="modal-client-name" name="client" class="w-full border p-2 rounded" autocomplete="off"><div id="client-autocomplete" class="autocomplete-suggestions hidden"></div></div></div><div><label>Pet</label><div class="relative"><input type="text" id="modal-pet-name" name="pet" class="w-full border p-2 rounded" autocomplete="off"><div id="pet-autocomplete" class="autocomplete-suggestions hidden"></div></div></div><div><label>Serviço</label><select id="modal-service" name="service" class="w-full border p-2 rounded"></select></div><div><label>Porte</label><select id="modal-pet-size" name="pet-size" class="w-full border p-2 rounded"><option value="">-- Selecione --</option><option value="Pequeno">Pequeno</option><option value="Médio">Médio</option><option value="Grande">Grande</option></select></div><div><label>Valor</label><input type="text" id="modal-value" name="value" class="w-full border p-2 rounded"></div><div><label>Pagamento</label><select id="modal-payment-method" name="payment-method" class="w-full border p-2 rounded"><option value="">Selecione</option><option>Dinheiro</option><option>Pix</option><option>Crédito</option><option>Débito</option></select></div><div><label>Contato</label><input type="text" id="modal-contact" name="contact" class="w-full border p-2 rounded"></div><div><label>Observações</label><textarea id="modal-history" name="history" rows="3" class="w-full border p-2 rounded"></textarea></div><div class="flex justify-between"><div class="flex items-center"><input type="checkbox" id="modal-home-delivery"><label for="modal-home-delivery" class="ml-2">Busca em casa</label></div><div class="flex items-center"><input type="checkbox" id="modal-concluded" name="isConcluded"><label for="modal-concluded" class="ml-2">Concluído</label></div></div><div class="flex justify-end space-x-2 mt-4"><button type="button" id="delete-appointment" class="py-2 px-4 rounded-md text-white bg-red-600 hover:bg-red-700 hidden">Excluir</button><button type="button" id="close-appointment-modal" class="py-2 px-4 rounded-md border">Cancelar</button><button type="submit" id="save-appointment" class="py-2 px-4 rounded-md text-white bg-blue-600 hover:bg-blue-700">Salvar</button></div></form></div>
@@ -199,6 +231,7 @@
         let selectedDate = null;
         let selectedTimeSlot = null;
         let editingServiceIndex = null;
+        let currentUser = null;
         
         let appointments = {};
         let clients = {};
@@ -377,8 +410,22 @@
                 listEl.insertAdjacentHTML('beforeend', `<li class="flex justify-between items-center bg-gray-100 p-2 rounded-md"><div class="flex-1 text-sm"><span class="font-semibold">${service.name}: </span><span>(P: R$${service.prices.P}) </span><span>(M: R$${service.prices.M}) </span><span>(G: R$${service.prices.G})</span></div><div class="flex space-x-2"><button type="button" class="edit-service-btn p-1" data-index="${index}"><svg class="h-5 w-5 text-blue-500 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM5 11h2v2H5v-2zM4 14a1 1 0 011-1h6a1 1 0 110 2H5a1 1 0 01-1-1z"/></svg></button><button type="button" class="delete-service-btn p-1" data-index="${index}"><svg class="h-5 w-5 text-red-500 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd"/></svg></button></div></li>`);
             });
         }
+        function renderUserList() {
+            const listEl = document.getElementById('user-list');
+            listEl.innerHTML = '';
+            config.users?.forEach((user, index) => {
+                listEl.insertAdjacentHTML('beforeend', `<li class="flex justify-between items-center bg-gray-100 p-2 rounded-md"><div class="flex-1 text-sm"><span class="font-semibold">${user.username}</span> <span class="text-gray-500">(${user.level})</span></div><div class="flex space-x-2"><button type="button" class="edit-user-btn p-1" data-index="${index}"><svg class="h-5 w-5 text-blue-500 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM5 11h2v2H5v-2zM4 14a1 1 0 011-1h6a1 1 0 110 2H5a1 1 0 01-1-1z"/></svg></button><button type="button" class="delete-user-btn p-1" data-index="${index}"><svg class="h-5 w-5 text-red-500 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd"/></svg></button></div></li>`);
+            });
+        }
         
         // --- Funções de Lógica de UI ---
+        function checkPermissions() {
+            if (currentUser && currentUser.level === 'Admin') {
+                document.getElementById('user-management-section').classList.remove('hidden');
+            } else {
+                document.getElementById('user-management-section').classList.add('hidden');
+            }
+        }
         function setupModal(modalId, openBtnId, closeBtnId) {
             const modal = document.getElementById(modalId);
             const openBtn = document.getElementById(openBtnId);
@@ -487,7 +534,7 @@
             }
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-agenda';
-            const dataPath = `artifacts/${appId}/public/data/agenda`; // Corrected path
+            const dataPath = `artifacts/${appId}/public/data/agenda`;
 
             configRef = doc(db, dataPath, 'config');
             clientsRef = doc(db, dataPath, 'clients');
@@ -496,12 +543,21 @@
             onSnapshot(configRef, (docSnap) => {
                 if (docSnap.exists()) {
                     config = docSnap.data();
+                    if (!config.users || config.users.length === 0) {
+                        config.users = [{username: 'admin', password: 'admin', level: 'Admin'}];
+                        saveConfig();
+                    }
                 } else {
-                    config = { weekday: { start: "08:00", end: "21:00" }, saturday: { enabled: true, start: "08:00", end: "18:00" }, sunday: { enabled: false, start: "08:00", end: "18:00" }, cardFee: "3", services: [{ name: "Banho", prices: { P: "40,00", M: "50,00", G: "60,00" } }] };
+                    config = { 
+                        users: [{username: 'admin', password: 'admin', level: 'Admin'}],
+                        weekday: { start: "08:00", end: "21:00" }, 
+                        saturday: { enabled: true, start: "08:00", end: "18:00" }, 
+                        sunday: { enabled: false, start: "08:00", end: "18:00" }, 
+                        cardFee: "3", 
+                        services: [{ name: "Banho", prices: { P: "40,00", M: "50,00", G: "60,00" } }] 
+                    };
                     saveConfig();
                 }
-                renderCalendar();
-                if (selectedDate) renderTable();
             });
 
             onSnapshot(clientsRef, (docSnap) => {
@@ -512,14 +568,41 @@
 
             onSnapshot(appointmentsRef, (docSnap) => {
                 appointments = docSnap.data()?.data || {};
-                renderCalendar();
-                if (selectedDate) renderTable();
+                if (currentUser) {
+                    renderCalendar();
+                    if (selectedDate) renderTable();
+                }
                 document.getElementById('loading-overlay').style.display = 'none';
             });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             initializeAppAndListeners();
+
+            document.getElementById('password-form').addEventListener('submit', e => {
+                e.preventDefault();
+                const usernameInput = document.getElementById('username-input');
+                const passwordInput = document.getElementById('password-input');
+                const passwordError = document.getElementById('password-error');
+                
+                const user = config.users.find(u => u.username === usernameInput.value && u.password === passwordInput.value);
+
+                if (user) {
+                    currentUser = user;
+                    document.getElementById('password-modal').style.display = 'none';
+                    document.getElementById('app-container').classList.remove('hidden');
+                    renderCalendar();
+                    checkPermissions();
+                } else {
+                    passwordError.textContent = 'Credenciais incorretas. Tente novamente.';
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            });
+
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                location.reload();
+            });
             
             setupModal('config-modal', 'open-config-modal', 'close-config-modal');
             setupModal('clients-modal', 'open-clients-modal', 'close-clients-modal');
@@ -549,6 +632,8 @@
                 form.elements['sunday-end-time'].value = config.sunday.end;
                 form.elements['card-fee'].value = config.cardFee;
                 renderServiceList();
+                renderUserList();
+                checkPermissions();
             });
 
             document.getElementById('config-form').addEventListener('submit', e => {
@@ -584,9 +669,9 @@
                     }
                     editingServiceIndex = null;
                     [nameInput, pInput, mInput, gInput].forEach(i => i.value = '');
-                    saveConfig();
+                    saveConfig().then(renderServiceList);
                 } else {
-                    showMessage('Preencha todos os campos.', 'error');
+                    showMessage('Preencha todos os campos do serviço.', 'error');
                 }
             });
 
@@ -604,10 +689,73 @@
                 if (deleteBtn) {
                     if (await customConfirm('Excluir serviço?')) {
                         config.services.splice(parseInt(deleteBtn.dataset.index), 1);
-                        saveConfig();
+                        saveConfig().then(renderServiceList);
                     }
                 }
             });
+
+            // --- Gestão de Utilizadores ---
+            document.getElementById('add-user-btn').addEventListener('click', () => {
+                const indexInput = document.getElementById('editing-user-index');
+                const usernameInput = document.getElementById('new-username');
+                const passwordInput = document.getElementById('new-user-password');
+                const levelInput = document.getElementById('new-user-level');
+
+                if (!usernameInput.value || !passwordInput.value) {
+                    showMessage('Nome de utilizador e senha são obrigatórios.', 'error');
+                    return;
+                }
+
+                const newUser = {
+                    username: usernameInput.value,
+                    password: passwordInput.value,
+                    level: levelInput.value
+                };
+
+                if (indexInput.value) { // Editando
+                    config.users[parseInt(indexInput.value)] = newUser;
+                } else { // Adicionando
+                    if (config.users.some(u => u.username === newUser.username)) {
+                        showMessage('Este nome de utilizador já existe.', 'error');
+                        return;
+                    }
+                    config.users.push(newUser);
+                }
+                
+                saveConfig().then(() => {
+                    renderUserList();
+                    showMessage('Utilizador salvo com sucesso!');
+                    indexInput.value = '';
+                    usernameInput.value = '';
+                    passwordInput.value = '';
+                });
+            });
+
+            document.getElementById('user-list').addEventListener('click', async (e) => {
+                const editBtn = e.target.closest('.edit-user-btn');
+                const deleteBtn = e.target.closest('.delete-user-btn');
+                const index = editBtn?.dataset.index || deleteBtn?.dataset.index;
+
+                if (editBtn) {
+                    const user = config.users[index];
+                    document.getElementById('editing-user-index').value = index;
+                    document.getElementById('new-username').value = user.username;
+                    document.getElementById('new-user-password').value = user.password;
+                    document.getElementById('new-user-level').value = user.level;
+                }
+
+                if (deleteBtn) {
+                    if (config.users[index].username === currentUser.username) {
+                        showMessage('Não pode excluir o seu próprio utilizador.', 'error');
+                        return;
+                    }
+                    if (await customConfirm('Tem a certeza que deseja excluir este utilizador?')) {
+                        config.users.splice(index, 1);
+                        saveConfig().then(renderUserList);
+                    }
+                }
+            });
+
 
             document.getElementById('appointment-form').addEventListener('submit', e => {
                 e.preventDefault();
