@@ -516,8 +516,21 @@
         
         // --- Inicialização e Event Listeners ---
         async function initializeAppAndListeners() {
-            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-            const app = initializeApp(firebaseConfig);
+            const firebaseConfig = {
+                apiKey: "YOUR_API_KEY",
+                authDomain: "projeto-agenda-racafort.firebaseapp.com",
+                projectId: "projeto-agenda-racafort",
+                storageBucket: "projeto-agenda-racafort.appspot.com",
+                messagingSenderId: "YOUR_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            };
+            
+            // NOTE: Replace the placeholder config with a real one if you have it.
+            // The application will try to use a globally provided config if it exists.
+            const finalFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
+
+
+            const app = initializeApp(finalFirebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
             
