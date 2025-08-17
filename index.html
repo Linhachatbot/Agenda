@@ -123,7 +123,7 @@
         A carregar dados da agenda online...
     </div>
 
-    <!-- Modal de Senha -->
+    <!-- Modal de Senha (Único método de login) -->
     <div id="password-modal">
         <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
             <h2 class="text-2xl font-bold mb-4">Acesso Restrito</h2>
@@ -220,6 +220,11 @@
     </div>
     <div id="message-box" class="fixed top-5 right-5 p-4 rounded-md shadow-lg text-white font-medium transform transition-transform duration-300 translate-y-full opacity-0"></div>
 
+    <!-- Marca d'água da Versão -->
+    <footer class="fixed bottom-4 right-4 text-xs text-gray-400">
+        versao 1.0.0.1
+    </footer>
+
     <script type="module">
         // Importa os módulos do Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -273,7 +278,7 @@
             const box = document.getElementById('message-box');
             box.textContent = message;
             box.className = `fixed top-5 right-5 p-4 rounded-md shadow-lg text-white font-medium transform transition-transform duration-300 translate-y-0 opacity-100 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
-            setTimeout(() => box.className = box.className.replace('translate-y-0', 'translate-y-full opacity-0'), 3000);
+            setTimeout(() => box.className = box.className.replace('translate-y-0 opacity-100', 'translate-y-full opacity-0'), 3000);
         }
         function customConfirm(message) {
             return new Promise(resolve => {
@@ -516,24 +521,20 @@
         
         // --- Inicialização e Event Listeners ---
         async function initializeAppAndListeners() {
-            const firebaseConfig = {
-                apiKey: "YOUR_API_KEY",
-                authDomain: "projeto-agenda-racafort.firebaseapp.com",
-                projectId: "projeto-agenda-racafort",
-                storageBucket: "projeto-agenda-racafort.appspot.com",
-                messagingSenderId: "YOUR_SENDER_ID",
-                appId: "YOUR_APP_ID"
-            };
-            
-            // NOTE: Replace the placeholder config with a real one if you have it.
-            // The application will try to use a globally provided config if it exists.
-            const finalFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
+            // A configuração do Firebase é injetada pelo ambiente
+            const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+            const firebaseConfig = JSON.parse(firebaseConfigStr);
 
+            if (!firebaseConfig.apiKey) {
+                document.getElementById('loading-overlay').textContent = "Erro de configuração do Firebase.";
+                return;
+            }
 
-            const app = initializeApp(finalFirebaseConfig);
+            const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
             
+            // Autenticação anônima para permitir acesso ao Firestore
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
@@ -546,6 +547,7 @@
                 return;
             }
 
+            // O caminho para os dados no Firestore, usando o ID da aplicação injetado
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-agenda';
             const dataPath = `artifacts/${appId}/public/data/agenda`;
 
@@ -557,10 +559,12 @@
                 if (docSnap.exists()) {
                     config = docSnap.data();
                     if (!config.users || config.users.length === 0) {
+                        // Cria um usuário admin padrão se não existir nenhum
                         config.users = [{username: 'admin', password: 'admin', level: 'Admin'}];
                         saveConfig();
                     }
                 } else {
+                    // Cria uma configuração padrão se o documento não existir
                     config = { 
                         users: [{username: 'admin', password: 'admin', level: 'Admin'}],
                         weekday: { start: "08:00", end: "21:00" }, 
@@ -585,7 +589,7 @@
 
             onSnapshot(appointmentsRef, (docSnap) => {
                 appointments = docSnap.data()?.data || {};
-                if (currentUser) {
+                if (currentUser) { // Se já houver um usuário logado, atualiza a visualização
                     renderCalendar();
                     if (selectedDate) renderTable();
                 }
@@ -611,6 +615,7 @@
                     return;
                 }
 
+                // Procura o usuário na lista de usuários da configuração
                 const user = config.users.find(u => u.username === usernameInput.value && u.password === passwordInput.value);
 
                 if (user) {
@@ -627,7 +632,7 @@
             });
 
             document.getElementById('logout-btn').addEventListener('click', () => {
-                location.reload();
+                location.reload(); // A forma mais simples de fazer logout é recarregar a página
             });
             
             setupModal('config-modal', 'open-config-modal', 'close-config-modal');
@@ -976,3 +981,4 @@
     </script>
 </body>
 </html>
+
