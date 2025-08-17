@@ -517,24 +517,20 @@
         
         // --- Inicialização e Event Listeners ---
         async function initializeAppAndListeners() {
-            const firebaseConfig = {
-                apiKey: "AIzaSyAOtV4eUC4RbqUscCx1Ph5qQXNzmFbKgb0",
-                authDomain: "agenda-racafort.firebaseapp.com",
-                projectId: "agenda-racafort",
-                storageBucket: "agenda-racafort.appspot.com",
-                messagingSenderId: "352257996816",
-                appId: "1:352257996816:web:d67b304ad86fb73b747295"
-            };
-
+            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
             
             try {
-                await signInAnonymously(auth);
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
             } catch (error) {
                 console.error("Authentication Error:", error);
-                if (error.code === 'auth/configuration-not-found') {
+                 if (error.code === 'auth/configuration-not-found') {
                      document.getElementById('loading-overlay').innerHTML = `Erro de Autenticação: O login anônimo não está ativado.<br><br>Por favor, ative-o no seu painel do Firebase em Authentication > Sign-in method.`;
                 } else {
                     document.getElementById('loading-overlay').textContent = "Erro de autenticação. Verifique suas credenciais do Firebase.";
@@ -543,7 +539,8 @@
                 return;
             }
 
-            const dataPath = `agenda/data`;
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-agenda';
+            const dataPath = `artifacts/${appId}/public/data/agenda`;
 
             configRef = doc(db, dataPath, 'config');
             clientsRef = doc(db, dataPath, 'clients');
